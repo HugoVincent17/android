@@ -50,5 +50,6 @@ data class Score(
     @PrimaryKey(autoGenerate = true) val id_score: Int = 0,
     val date_partie: String,
     val points_obtenus: Int,
-    val total_questions: Int
+    val total_questions: Int,
+    val theme_joue: String
 )
