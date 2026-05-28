@@ -1,0 +1,54 @@
+package com.exemple.quizz // /!\ REMPLACE par le nom de ton package tout en haut de ta MainActivity
+
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.PrimaryKey
+
+// 1. TABLE THEME
+@Entity(tableName = "themes")
+data class Theme(
+    @PrimaryKey(autoGenerate = true) val id_theme: Int = 0,
+    val nom_theme: String
+)
+
+// 2. TABLE QUESTION (Relation "Appartenir" via clé étrangère vers le Thème)
+@Entity(
+    tableName = "questions",
+    foreignKeys = [ForeignKey(
+        entity = Theme::class,
+        parentColumns = ["id_theme"],
+        childColumns = ["themeId"],
+        onDelete = ForeignKey.CASCADE // Si on supprime un thème, les questions partent avec
+    )]
+)
+data class Question(
+    @PrimaryKey(autoGenerate = true) val id_question: Int = 0,
+    val themeId: Int, // Clé étrangère qui matérialise la relation "Appartenir"
+    val texte: String
+)
+
+// 3. TABLE REPONSE (Relation "Proposer" via clé étrangère vers la Question)
+@Entity(
+    tableName = "reponses",
+    foreignKeys = [ForeignKey(
+        entity = Question::class,
+        parentColumns = ["id_question"],
+        childColumns = ["questionId"],
+        onDelete = ForeignKey.CASCADE // Si on supprime une question, ses réponses partent avec
+    )]
+)
+data class Reponse(
+    @PrimaryKey(autoGenerate = true) val id_reponse: Int = 0,
+    val questionId: Int, // Clé étrangère qui matérialise la relation "Proposer"
+    val texte: String,
+    val correcte: Boolean
+)
+
+// 4. TABLE SCORE (Obligatoire pour l'historique et valider le CREATE/DELETE du CRUD)
+@Entity(tableName = "scores")
+data class Score(
+    @PrimaryKey(autoGenerate = true) val id_score: Int = 0,
+    val date_partie: String,
+    val points_obtenus: Int,
+    val total_questions: Int
+)
