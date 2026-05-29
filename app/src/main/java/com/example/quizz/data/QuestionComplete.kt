@@ -1,7 +1,9 @@
-package com.exemple.quizz // /!\ Remplace par ton package
+package com.example.quizz.data
 
 import androidx.room.Embedded
 import androidx.room.Relation
+import com.exemple.quizz.Question
+import com.exemple.quizz.Reponse
 
 data class QuestionComplete(
     @Embedded val question: Question,

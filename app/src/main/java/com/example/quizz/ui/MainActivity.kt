@@ -1,4 +1,4 @@
-package com.example.quizz // Laisse ton package d'origine ici
+package com.example.quizz.ui
 
 import android.graphics.Color
 import android.os.Bundle
@@ -9,10 +9,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.room.Room
 import com.example.quizz.R
-import com.exemple.quizz.AppDatabase
+import com.example.quizz.data.AppDatabase
+import com.example.quizz.data.QuestionComplete
+import com.example.quizz.data.QuizDao
 import com.exemple.quizz.Question
-import com.exemple.quizz.QuestionComplete
-import com.exemple.quizz.QuizDao
 import com.exemple.quizz.Reponse
 import com.exemple.quizz.Score
 import com.exemple.quizz.Theme
@@ -41,13 +41,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnQuestionSuivante: Button
 
     private lateinit var layoutScore: LinearLayout
-
     private lateinit var layoutHistorique : LinearLayout
-
     private lateinit var containerHistorique: LinearLayout
 
     private lateinit var btnRetourMenuDepuisHist: Button
-
     private lateinit var btnVoirHistorique: Button
 
     private lateinit var txtProgression: TextView
@@ -56,11 +53,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtScoreFinal: TextView
     private lateinit var btnRetourMenu: Button
 
+    //méthode appelée automatiquement au lancement de l'appli
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // 1. Liaison du code avec le design XML
+        // Liaison des variables avec les composants du activity_main
         layoutThemes = findViewById(R.id.layoutThemes)
         containerBoutonsThemes = findViewById(R.id.containerBoutonsThemes)
         layoutJeu = findViewById(R.id.layoutJeu)
@@ -79,88 +77,105 @@ class MainActivity : AppCompatActivity() {
             findViewById(R.id.btnReponse4)
         )
 
-        // 2. Initialisation SQLite Room
-        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "quiz-sqlite.db").build()
-        quizDao = db.quizDao()
-
-        // 3. Lancement de l'application en tâche de fond
-        CoroutineScope(Dispatchers.IO).launch {
-            // Remplir la base si c'est le premier lancement (méthode vue ensemble juste avant)
-            remplirBaseDeDonneesSiVide()
-
-            // Charger les thèmes depuis la BDD et les afficher
-            val listeThemes = quizDao.getAllThemes()
-
-            withContext(Dispatchers.Main) {
-                afficherListeThemes(listeThemes)
-            }
-        }
-
-        // Bouton pour rejouer à la fin
-        btnRetourMenu.setOnClickListener {
-            layoutScore.visibility = View.GONE
-            layoutThemes.visibility = View.VISIBLE
-        }
-
         layoutHistorique = findViewById(R.id.layoutHistorique)
         containerHistorique = findViewById(R.id.containerHistorique)
         btnRetourMenuDepuisHist = findViewById(R.id.btnRetourMenuDepuisHist)
-        btnVoirHistorique = findViewById(R.id.btnVoirHistorique) // Pense à l'ajouter dans ton XML de menu !
+        btnVoirHistorique = findViewById(R.id.btnVoirHistorique)
 
-// Clic pour ouvrir l'historique depuis le menu
+        // Initialisation BDD SQLite via le framework Room
+        db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, "quiz-sqlite.db")
+            .fallbackToDestructiveMigration() // Sécurité pour éviter les crashs si la BDD change
+            .build()
+        quizDao = db.quizDao()
+
+        // Premier chargement de l'application
+        CoroutineScope(Dispatchers.IO).launch {
+            remplirBaseDeDonneesSiVide()  //Insère le jeu d'essai si la BDD est vide
+            rafraichirMenuThemes() // On utilise une fonction dédiée pour charger et afficher les thème sur le menu
+        }
+
+        // Action quand on clique sur "Retour au Menu" depuis l'écran des scores après un quizz
+        btnRetourMenu.setOnClickListener {
+            layoutScore.visibility = View.GONE //cache l'écran des scores
+            layoutThemes.visibility = View.VISIBLE //affiche le menu
+            //Relancer une coroutine pour rafraichir les boutons
+            CoroutineScope(Dispatchers.IO).launch {
+                rafraichirMenuThemes()
+            }
+        }
+
+        // Clic pour ouvrir l'historique depuis le menu
         btnVoirHistorique.setOnClickListener {
             layoutThemes.visibility = View.GONE
             layoutHistorique.visibility = View.VISIBLE
             afficherHistorique()
         }
 
-// Clic pour quitter l'historique
+        // Clic pour quitter l'historique
         btnRetourMenuDepuisHist.setOnClickListener {
             layoutHistorique.visibility = View.GONE
             layoutThemes.visibility = View.VISIBLE
+            // On rafraîchit aussi ici au cas où par sécurité
+            CoroutineScope(Dispatchers.IO).launch {
+                rafraichirMenuThemes()
+            }
         }
     }
 
-    // Affiche les thèmes sous forme de boutons colorés
-    private fun afficherListeThemes(themes: List<Theme>) {
-        containerBoutonsThemes.removeAllViews()
+    // Fonction de transition : Récupère les données à jour en tâche de fond puis les envoie à l'affichage
+    private suspend fun rafraichirMenuThemes() {
+        val listeThemes = quizDao.getAllThemes() // requête SQL de lecture
+        withContext(Dispatchers.Main) {
+            afficherListeThemes(listeThemes)
+        }
+    }
 
-        // Liste de couleurs pastel à alterner
+    // Génère dynamiquement les boutons de sélection des thèmes
+    private fun afficherListeThemes(themes: List<Theme>) {
+        containerBoutonsThemes.removeAllViews()// Vide les anciens boutons pour éviter les doublons
+
+        // Couleurs des thèmes
         val couleurs = listOf("#FFD1DC", "#C1E1C1", "#FFFACD", "#D6CADD", "#B0E0E6")
 
+        //boucle sur chaque thème
         for ((index, theme) in themes.withIndex()) {
             val btn = Button(this).apply {
-                text = theme.nom_theme
+                // CRITÈRE 'UPDATE' DU CRUD : On affiche le nombre de fois que ce thème a été joué               text = "${theme.nom_theme} (${theme.nb_parties_jouees} 🎮)"
                 textSize = 18f
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
                 ).apply { setMargins(0, 0, 0, 16) }
 
-                // Attribution d'une couleur de fond différente à chaque bouton
                 setBackgroundColor(Color.parseColor(couleurs[index % couleurs.size]))
-                setTextColor(Color.BLACK) // Pour que ce soit bien lisible sur le pastel
+                setTextColor(Color.BLACK)
 
+                //Clic sur le thème pour lancer le quizz
                 setOnClickListener {
                     lancerQuizPourTheme(theme.id_theme)
                 }
             }
-            containerBoutonsThemes.addView(btn)
+            containerBoutonsThemes.addView(btn) // Ajoute physiquement le bouton dans le design vertical
         }
     }
 
     // Pioche 10 questions et lance l'affichage du jeu
     private fun lancerQuizPourTheme(idTheme: Int) {
         CoroutineScope(Dispatchers.IO).launch {
-            // Récupère toutes les questions de ce thème
-            val toutesLesQuestions = quizDao.getQuestionsByTheme(idTheme)
+            // L'UPDATE du CRUD s'exécute ici en BDD, incrémente le nb de parties jouées
+            quizDao.incrementerCompteurTheme(idTheme)
 
-            // LA MAGIE KOTLIN : .shuffled() mélange les questions, .take(10) prend les 10 premières
+            // --- ACTION 'READ' DU CRUD ---
+            // Récupère l'ensemble des questions liées à ce thème via leur clé étrangère
+            val toutesLesQuestions = quizDao.getQuestionsByTheme(idTheme)
+            // Mélange les questions (.shuffled) et en prend exactement 10 (.take)
             listeQuestionsPiochees = toutesLesQuestions.shuffled().take(10)
 
+            // Réinitialisation des variables de suivi pour la nouvelle partie
             indexQuestionCourante = 0
             score = 0
 
+            // Transition visuelle vers l'écran de jeu
             withContext(Dispatchers.Main) {
                 layoutThemes.visibility = View.GONE
                 layoutJeu.visibility = View.VISIBLE
@@ -169,23 +184,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Met à jour l'écran avec la question courante et ses 4 réponses
+    // Gère l'affichage d'une question et l'évaluation de la réponse cliquée
     private fun afficherQuestion() {
+        // Condition d'arrêt : Si on a dépassé la dernière question piochée, le quiz est fini
         if (indexQuestionCourante >= listeQuestionsPiochees.size) {
             terminerPartie()
             return
         }
 
-        // On cache le bouton "Suivant" au début de la question
-        btnQuestionSuivante.visibility = View.GONE
+        btnQuestionSuivante.visibility = View.GONE // Cache le bouton "Suivant" tant que l'utilisateur n'a pas répondu
 
+        // Met à jour le compteur d'avancement, ex : "Question 1 / 10"
         txtProgression.text = "Question ${indexQuestionCourante + 1} / ${listeQuestionsPiochees.size}"
 
+        // Récupération de l'objet de relation (contient 1 Question et ses 4 Réponses associées)
         val questionComplete = listeQuestionsPiochees[indexQuestionCourante]
         txtQuestion.text = questionComplete.question.texte
         val reponses = questionComplete.reponses
 
-        // 1. Configuration initiale des 4 boutons de réponses
+        // Configuration des 4 boutons de réponses
         for (i in boutonsReponses.indices) {
             if (i < reponses.size) {
                 val reponse = reponses[i]
@@ -193,38 +210,35 @@ class MainActivity : AppCompatActivity() {
 
                 bouton.visibility = View.VISIBLE
                 bouton.text = reponse.texte
-                bouton.isEnabled = true
-                bouton.setBackgroundColor(Color.parseColor("#A2C4C9")) // Gris neutre par défaut
+                bouton.isEnabled = true  // Réactive le bouton (qui avait pu être bloqué à la question précédente)
+                bouton.setBackgroundColor(Color.parseColor("#A2C4C9")) // Remet la couleur neutre par défaut
                 bouton.setTextColor(Color.BLACK)
 
-                // 2. Clic sur une des réponses
+                // Clic sur une des 4 réponses possibles
                 bouton.setOnClickListener {
-                    // Bloque immédiatement toutes les réponses
+                    // Verrouillage de sécurité : Désactive les 4 boutons pour empêcher de cliquer plusieurs fois
                     boutonsReponses.forEach { it.isEnabled = false }
 
-                    // Si la réponse cliquée est correcte
+                    // Vérification de la réponse cliquée
                     if (reponse.correcte) {
                         score++
-                        // On colore UNIQUEMENT le bouton cliqué en vert
-                        bouton.setBackgroundColor(Color.parseColor("#C1E1C1")) // Vert Pastel
+                        bouton.setBackgroundColor(Color.parseColor("#C1E1C1"))
                     } else {
-                        // Si la réponse cliquée est fausse : on la colore en rouge
-                        bouton.setBackgroundColor(Color.parseColor("#FFC0CB")) // Rouge/Rose Pastel
-
-                        // ET on cherche la bonne réponse dans la liste pour l'allumer en vert
+                        bouton.setBackgroundColor(Color.parseColor("#FFC0CB"))
+                        // Algorithme de correction : Parcourt les réponses pour allumer en VERT la bonne réponse cachée
                         for (j in boutonsReponses.indices) {
                             if (j < reponses.size && reponses[j].correcte) {
-                                boutonsReponses[j].setBackgroundColor(Color.parseColor("#C1E1C1")) // Vert Pastel
+                                boutonsReponses[j].setBackgroundColor(Color.parseColor("#C1E1C1"))
                             }
                         }
                     }
 
-                    // 4. On fait apparaître le bouton "Question suivante" en dessous
-                    btnQuestionSuivante.visibility = View.VISIBLE
+                    btnQuestionSuivante.visibility = View.VISIBLE // Fait apparaître le bouton pour avancer
 
+                    //  Clic sur le bouton suivant
                     btnQuestionSuivante.setOnClickListener {
-                        indexQuestionCourante++
-                        afficherQuestion() // Passe à la question d'après
+                        indexQuestionCourante++ // Incrémente l'index
+                        afficherQuestion()     // Rappelle la méthode pour charger la suite
                     }
                 }
             } else {
@@ -233,38 +247,97 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Enregistre le score en SQLite et bascule sur l'écran final
+    // Enregistre le score en SQLite, nettoie la BDD et bascule sur l'écran final
     private fun terminerPartie() {
         layoutJeu.visibility = View.GONE
         layoutScore.visibility = View.VISIBLE
         txtScoreFinal.text = "Votre score : $score / ${listeQuestionsPiochees.size}"
 
-        // Action 'CREATE' du CRUD : Sauvegarde du score en base de données
         CoroutineScope(Dispatchers.IO).launch {
+            // Création de la date et de l'heure actuelle au format textuel standardisé
             val dateStr = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
 
-            // On récupère le nom du thème joué (via la première question piochée)
+            // Récupère dynamiquement le nom du thème qui vient d'être joué
             val idThemeJoue = listeQuestionsPiochees.firstOrNull()?.question?.themeId ?: 0
             val nomThemeJoue = quizDao.getAllThemes().find { it.id_theme == idThemeJoue }?.nom_theme ?: "Inconnu"
 
+            // Instanciation de l'objet Score à enregistrer
             val enregistrementScore = Score(
                 date_partie = dateStr,
                 points_obtenus = score,
                 total_questions = listeQuestionsPiochees.size,
-                theme_joue = nomThemeJoue // <-- On ajoute le nom du thème ici !
+                theme_joue = nomThemeJoue
             )
+
+            // --- ACTION 'CREATE' DU CRUD ---
+            // Insère de manière persistante le nouveau score de l'utilisateur dans l'appareil
             quizDao.insertScore(enregistrementScore)
+
+            // --- ACTION 'DELETE' DU CRUD  ---
+            // Exécute la requête de purge SQLite pour détruire tous les scores au-delà des 20 plus récents
+            quizDao.conserverUniquementLes20DerniersScores()
+
+            // Permet de contrôler dans les logs Android Studio la bonne efficacité de la purge
+            val nbScoresApresNettoyage = quizDao.getAllScores().size
+            println("DEBUG QUIZ : Nombre de scores en BDD = $nbScoresApresNettoyage")
         }
     }
 
-    // Ton faux jeu de données de test automatique (à laisser pour amorcer la BDD)
-    // Ton jeu de données complet avec 5 thèmes et 10 questions par thème
+    // Construit et affiche visuellement la liste historique des scores (Maximum 20)
+    private fun afficherHistorique() {
+        containerHistorique.removeAllViews() // Vide les anciens affichages avant de rafraîchir
+
+        CoroutineScope(Dispatchers.IO).launch {
+            // --- ACTION 'READ' DU CRUD ---
+            // Récupère la liste triée des scores restants (Maximum 20 lignes suite au nettoyage automatique)
+            val listeScores = quizDao.getAllScores()
+
+            // Association de couleurs pour que chaque badge historique corresponde à la couleur de son thème du menu
+            val mappingCouleurs = mapOf(
+                "Cinéma" to "#FFD1DC",
+                "Football" to "#C1E1C1",
+                "Culture Générale" to "#FFFACD",
+                "Géographie" to "#D6CADD",
+                "Informatique" to "#B0E0E6"
+            )
+
+            // Retour sur le Thread d'affichage pour injecter les éléments dans le design
+            withContext(Dispatchers.Main) {
+                for (scoreEnregistre in listeScores) {
+                    // Création dynamique d'une zone de texte (TextView) pour chaque ligne de score
+                    val txtScore = TextView(this@MainActivity).apply {
+                        // Texte sur 2 lignes séparées par le \n
+                        text = "🏷️ Thème : ${scoreEnregistre.theme_joue}\n📅 ${scoreEnregistre.date_partie}  |  🏆 Score : ${scoreEnregistre.points_obtenus} / ${scoreEnregistre.total_questions}"
+                        textSize = 16f
+                        setPadding(24, 24, 24, 24)
+
+                        // Applique la couleur du thème associé ou un gris neutre si non trouvé
+                        val codeCouleur = mappingCouleurs[scoreEnregistre.theme_joue] ?: "#E0E0E0"
+                        setBackgroundColor(Color.parseColor(codeCouleur))
+                        setTextColor(Color.BLACK)
+
+                        // Configuration des dimensions d'affichage et de l'espacement entre chaque badge
+                        val params = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { setMargins(0, 0, 0, 20) }
+                        layoutParams = params
+                    }
+                    containerHistorique.addView(txtScore) // Insertion graphique du badge dans l'écran historique
+                }
+            }
+        }
+    }
+
+    // Jeu d'essai
     private suspend fun remplirBaseDeDonneesSiVide() {
+        // Sécurité : Si des thèmes existent déjà, on stoppe la fonction pour ne pas dupliquer les questions à l'infini
         if (quizDao.getAllThemes().isNotEmpty()) return
 
-        // --- 1. THÈME : CINÉMA ---
-        val idCinema = quizDao.insertTheme(Theme(nom_theme = "Cinéma")).toInt()
-
+        // Thème 1
+        // Insertion du thème principal. Le .toInt() récupère l'ID auto-généré par SQLite
+        val idCinema = quizDao.insertTheme(Theme(nom_theme = "Cinéma", nb_parties_jouees = 0)).toInt()
+        // Insertion de la question rattachée au thème Cinéma via son ID (Clé étrangère)
         val c1 = quizDao.insertQuestion(Question(themeId = idCinema, texte = "Quel film détient le record du plus grand nombre d'Oscars (11) ?"))
         quizDao.insertReponses(listOf(
             Reponse(questionId = c1.toInt(), texte = "Titanic", correcte = true),
@@ -336,9 +409,8 @@ class MainActivity : AppCompatActivity() {
             Reponse(questionId = c10.toInt(), texte = "1997", correcte = true)
         ))
 
-        // --- 2. THÈME : FOOTBALL ---
-        val idFoot = quizDao.insertTheme(Theme(nom_theme = "Football")).toInt()
-
+        // Thème 2
+        val idFoot = quizDao.insertTheme(Theme(nom_theme = "Football", nb_parties_jouees = 0)).toInt()
         val f1 = quizDao.insertQuestion(Question(themeId = idFoot, texte = "Quel pays a remporté la Coupe du Monde de football en 2022 ?"))
         quizDao.insertReponses(listOf(
             Reponse(questionId = f1.toInt(), texte = "Argentine", correcte = true),
@@ -378,7 +450,7 @@ class MainActivity : AppCompatActivity() {
         quizDao.insertReponses(listOf(
             Reponse(questionId = f6.toInt(), texte = "Zinedine Zidane", correcte = false),
             Reponse(questionId = f6.toInt(), texte = "Thierry Henry", correcte = false),
-            Reponse(questionId = f6.toInt(), texte = "Franck Ribéry", correcte = false) ,
+            Reponse(questionId = f6.toInt(), texte = "Franck Ribéry", correcte = false),
             Reponse(questionId = f6.toInt(), texte = "Michel Platini", correcte = true)
         ))
         val f7 = quizDao.insertQuestion(Question(themeId = idFoot, texte = "Dans quel club a signé Rayan Cherki cet été ?"))
@@ -410,9 +482,13 @@ class MainActivity : AppCompatActivity() {
             Reponse(questionId = f10.toInt(), texte = "Thierry Henry", correcte = false)
         ))
 
-        // --- 3. THÈME : CULTURE GÉNÉRALE ---
-        val idCulture = quizDao.insertTheme(Theme(nom_theme = "Culture Générale")).toInt()
-
+        // Thème 3
+        val idCulture = quizDao.insertTheme(
+            Theme(
+                nom_theme = "Culture Générale",
+                nb_parties_jouees = 0
+            )
+        ).toInt()
         val cu1 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Qui a peint la célèbre Joconde ?"))
         quizDao.insertReponses(listOf(
             Reponse(questionId = cu1.toInt(), texte = "Léonard de Vinci", correcte = true),
@@ -476,7 +552,12 @@ class MainActivity : AppCompatActivity() {
             Reponse(questionId = cu9.toInt(), texte = "L'autruche", correcte = false),
             Reponse(questionId = cu9.toInt(), texte = "L'antilope", correcte = false)
         ))
-        val cu10 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Combien d'os possède un être humain adulte en moyenne ?"))
+        val cu10 = quizDao.insertQuestion(
+            Question(
+                themeId = idCulture,
+                texte = "Combien d'os possède un être humain adulte en moyenne ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = cu10.toInt(), texte = "206", correcte = true),
             Reponse(questionId = cu10.toInt(), texte = "150", correcte = false),
@@ -487,70 +568,120 @@ class MainActivity : AppCompatActivity() {
         // --- 4. THÈME : GÉOGRAPHIE ---
         val idGeo = quizDao.insertTheme(Theme(nom_theme = "Géographie")).toInt()
 
-        val g1 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Quel est le plus long fleuve du monde ?"))
+        val g1 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Quel est le plus long fleuve du monde ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g1.toInt(), texte = "Le Nil", correcte = true),
             Reponse(questionId = g1.toInt(), texte = "L'Amazone", correcte = false),
             Reponse(questionId = g1.toInt(), texte = "Le Mississippi", correcte = false),
             Reponse(questionId = g1.toInt(), texte = "Le Yangzi Jiang", correcte = false)
         ))
-        val g2 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Dans quel pays se trouve le célèbre volcan Mont Fuji ?"))
+        val g2 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Dans quel pays se trouve le célèbre volcan Mont Fuji ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g2.toInt(), texte = "Chine", correcte = true),
             Reponse(questionId = g2.toInt(), texte = "Japon", correcte = false),
             Reponse(questionId = g2.toInt(), texte = "Indonésie", correcte = false),
             Reponse(questionId = g2.toInt(), texte = "Philippines", correcte = false)
         ))
-        val g3 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Quel est le pays le plus vaste du monde en superficie ?"))
+        val g3 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Quel est le pays le plus vaste du monde en superficie ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g3.toInt(), texte = "Russie", correcte = true),
             Reponse(questionId = g3.toInt(), texte = "Canada", correcte = false),
             Reponse(questionId = g3.toInt(), texte = "États-Unis", correcte = false),
             Reponse(questionId = g3.toInt(), texte = "Chine", correcte = false)
         ))
-        val g4 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Quelle chaîne de montagnes abrite le Mont Everest ?"))
+        val g4 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Quelle chaîne de montagnes abrite le Mont Everest ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g4.toInt(), texte = "L'Himalaya", correcte = true),
             Reponse(questionId = g4.toInt(), texte = "Les Andes", correcte = false),
             Reponse(questionId = g4.toInt(), texte = "Les Alpes", correcte = false),
             Reponse(questionId = g4.toInt(), texte = "Les Rocheuses", correcte = false)
         ))
-        val g5 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Quelle est la capitale du Canada ?"))
+        val g5 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Quelle est la capitale du Canada ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g5.toInt(), texte = "Ottawa", correcte = true),
             Reponse(questionId = g5.toInt(), texte = "Toronto", correcte = false),
             Reponse(questionId = g5.toInt(), texte = "Montréal", correcte = false),
             Reponse(questionId = g5.toInt(), texte = "Vancouver", correcte = false)
         ))
-        val g6 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Quel détroit sépare l'Espagne du Maroc ?"))
+        val g6 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Quel détroit sépare l'Espagne du Maroc ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g6.toInt(), texte = "Détroit de Gibraltar", correcte = true),
             Reponse(questionId = g6.toInt(), texte = "Détroit de Magellan", correcte = false),
             Reponse(questionId = g6.toInt(), texte = "Détroit de Béring", correcte = false),
             Reponse(questionId = g6.toInt(), texte = "Détroit du Bosphore", correcte = false)
         ))
-        val g7 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Sur quel continent se trouve le désert du Sahara ?"))
+        val g7 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Sur quel continent se trouve le désert du Sahara ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g7.toInt(), texte = "Afrique", correcte = true),
             Reponse(questionId = g7.toInt(), texte = "Asie", correcte = false),
             Reponse(questionId = g7.toInt(), texte = "Australie", correcte = false),
             Reponse(questionId = g7.toInt(), texte = "Amérique du Sud", correcte = false)
         ))
-        val g8 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Combien d'États composent les États-Unis d'Amérique ?"))
+        val g8 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Combien d'États composent les États-Unis d'Amérique ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g8.toInt(), texte = "50", correcte = true),
             Reponse(questionId = g8.toInt(), texte = "52", correcte = false),
             Reponse(questionId = g8.toInt(), texte = "48", correcte = false),
             Reponse(questionId = g8.toInt(), texte = "51", correcte = false)
         ))
-        val g9 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Quelle est la capitale de l'Italie ?"))
+        val g9 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Quelle est la capitale de l'Italie ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g9.toInt(), texte = "Rome", correcte = true),
             Reponse(questionId = g9.toInt(), texte = "Milan", correcte = false),
             Reponse(questionId = g9.toInt(), texte = "Venise", correcte = false),
             Reponse(questionId = g9.toInt(), texte = "Florence", correcte = false)
         ))
-        val g10 = quizDao.insertQuestion(Question(themeId = idGeo, texte = "Quelle mer borde le sud de la France ?"))
+        val g10 = quizDao.insertQuestion(
+            Question(
+                themeId = idGeo,
+                texte = "Quelle mer borde le sud de la France ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = g10.toInt(), texte = "La mer Méditerranée", correcte = true),
             Reponse(questionId = g10.toInt(), texte = "La mer Noire", correcte = false),
@@ -561,133 +692,129 @@ class MainActivity : AppCompatActivity() {
         // --- 5. THÈME : INFORMATIQUE ---
         val idInfo = quizDao.insertTheme(Theme(nom_theme = "Informatique")).toInt()
 
-        val i1 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Que signifie le sigle HTML ?"))
+        val i1 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Que signifie le sigle HTML ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i1.toInt(), texte = "HyperText Markup Language", correcte = true),
             Reponse(questionId = i1.toInt(), texte = "HighText Machine Language", correcte = false),
-            Reponse(questionId = i1.toInt(), texte = "Hyperlink Text Multi Language", correcte = false),
+            Reponse(
+                questionId = i1.toInt(),
+                texte = "Hyperlink Text Multi Language",
+                correcte = false
+            ),
             Reponse(questionId = i1.toInt(), texte = "Home Tool Markup Language", correcte = false)
         ))
-        val i2 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Quel langage est officiellement recommandé par Google pour Android aujourd'hui ?"))
+        val i2 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Quel langage est officiellement recommandé par Google pour Android aujourd'hui ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i2.toInt(), texte = "Kotlin", correcte = true),
             Reponse(questionId = i2.toInt(), texte = "Java", correcte = false),
             Reponse(questionId = i2.toInt(), texte = "Python", correcte = false),
             Reponse(questionId = i2.toInt(), texte = "C++", correcte = false)
         ))
-        val i3 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Quel composant d'un PC est considéré comme son 'cerveau' ?"))
+        val i3 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Quel composant d'un PC est considéré comme son 'cerveau' ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i3.toInt(), texte = "Le processeur (CPU)", correcte = true),
             Reponse(questionId = i3.toInt(), texte = "La carte graphique (GPU)", correcte = false),
             Reponse(questionId = i3.toInt(), texte = "La mémoire vive (RAM)", correcte = false),
             Reponse(questionId = i3.toInt(), texte = "Le disque dur (SSD)", correcte = false)
         ))
-        val i4 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Dans le système binaire, de quels chiffres se compose le code ?"))
+        val i4 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Dans le système binaire, de quels chiffres se compose le code ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i4.toInt(), texte = "0 et 1", correcte = true),
             Reponse(questionId = i4.toInt(), texte = "1 et 2", correcte = false),
             Reponse(questionId = i4.toInt(), texte = "0 et 9", correcte = false),
             Reponse(questionId = i4.toInt(), texte = "-1 et 1", correcte = false)
         ))
-        val i5 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Que signifie l'extension '.ip' d'une adresse internet ?"))
+        val i5 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Que signifie l'extension '.ip' d'une adresse internet ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i5.toInt(), texte = "Internet Protocol", correcte = true),
             Reponse(questionId = i5.toInt(), texte = "Internal Process", correcte = false),
             Reponse(questionId = i5.toInt(), texte = "Instant Connection", correcte = false),
             Reponse(questionId = i5.toInt(), texte = "Internet Provider", correcte = false)
         ))
-        val i6 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Qui est le principal cofondateur de la société Microsoft ?"))
+        val i6 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Qui est le principal cofondateur de la société Microsoft ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i6.toInt(), texte = "Bill Gates", correcte = true),
             Reponse(questionId = i6.toInt(), texte = "Steve Jobs", correcte = false),
             Reponse(questionId = i6.toInt(), texte = "Mark Zuckerberg", correcte = false),
             Reponse(questionId = i6.toInt(), texte = "Jeff Bezos", correcte = false)
         ))
-        val i7 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Quelle mémoire s'efface instantanément lorsque le PC s'éteint ?"))
+        val i7 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Quelle mémoire s'efface instantanément lorsque le PC s'éteint ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i7.toInt(), texte = "La mémoire RAM", correcte = true),
             Reponse(questionId = i7.toInt(), texte = "Le disque SSD", correcte = false),
             Reponse(questionId = i7.toInt(), texte = "La clé USB", correcte = false),
             Reponse(questionId = i7.toInt(), texte = "La mémoire ROM", correcte = false)
         ))
-        val i8 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Quel animal sert de logo officiel au système d'exploitation Linux ?"))
+        val i8 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Quel animal sert de logo officiel au système d'exploitation Linux ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i8.toInt(), texte = "Un manchot (Tux)", correcte = true),
             Reponse(questionId = i8.toInt(), texte = "Un renard", correcte = false),
             Reponse(questionId = i8.toInt(), texte = "Un dauphin", correcte = false),
             Reponse(questionId = i8.toInt(), texte = "Un gnou", correcte = false)
         ))
-        val i9 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Quel protocole sécurisé utilise un petit cadenas vert dans la barre d'adresse (URL) ?"))
+        val i9 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Quel protocole sécurisé utilise un petit cadenas vert dans la barre d'adresse (URL) ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i9.toInt(), texte = "HTTPS", correcte = true),
             Reponse(questionId = i9.toInt(), texte = "HTTP", correcte = false),
             Reponse(questionId = i9.toInt(), texte = "FTP", correcte = false),
             Reponse(questionId = i9.toInt(), texte = "SMTP", correcte = false)
         ))
-        val i10 = quizDao.insertQuestion(Question(themeId = idInfo, texte = "Combien d'octets y a-t-il exactement dans un Kilooctet (Ko) ?"))
+        val i10 = quizDao.insertQuestion(
+            Question(
+                themeId = idInfo,
+                texte = "Combien d'octets y a-t-il exactement dans un Kilooctet (Ko) ?"
+            )
+        )
         quizDao.insertReponses(listOf(
             Reponse(questionId = i10.toInt(), texte = "1024", correcte = true),
             Reponse(questionId = i10.toInt(), texte = "1000", correcte = false),
             Reponse(questionId = i10.toInt(), texte = "512", correcte = false),
             Reponse(questionId = i10.toInt(), texte = "2048", correcte = false)
         ))
-    }
-
-    private fun afficherHistorique() {
-        CoroutineScope(Dispatchers.IO).launch {
-            // 1. Récupération des scores dans la BDD SQLite
-            val listeScores = quizDao.getAllScores()
-
-            withContext(Dispatchers.Main) {
-                containerHistorique.removeAllViews()
-
-                if (listeScores.isEmpty()) {
-                    val txtVide = TextView(this@MainActivity).apply {
-                        text = "Aucune partie enregistrée pour le moment."
-                        textSize = 16f
-                        gravity = android.view.Gravity.CENTER
-                    }
-                    containerHistorique.addView(txtVide)
-                    return@withContext
-                }
-
-
-                val mappingCouleurs = mapOf(
-                    "Cinéma" to "#FFD1DC",
-                    "Football" to "#C1E1C1",
-                    "Culture Générale" to "#FFFACD",
-                    "Géographie" to "#D6CADD",
-                    "Informatique" to "#B0E0E6"
-                )
-
-                // 2. Création dynamique d'une ligne pour chaque score sur 2 lignes avec couleur
-                for (scoreEnregistre in listeScores) {
-                    val txtScore = TextView(this@MainActivity).apply {
-
-                        // Ligne 1 : Le Thème
-                        // Ligne 2 (\n) : La date et le score obtenu
-                        text = "🏷️ Thème : ${scoreEnregistre.theme_joue}\n📅 ${scoreEnregistre.date_partie}  |  🏆 Score : ${scoreEnregistre.points_obtenus} / ${scoreEnregistre.total_questions}"
-
-                        textSize = 16f
-                        setPadding(16, 16, 16, 16) // Un peu d'espace pour respirer
-
-                        // On récupère la couleur associée au thème, ou du gris par défaut si inconnu
-                        val codeCouleur = mappingCouleurs[scoreEnregistre.theme_joue] ?: "#CCCCCC"
-
-                        // On applique la couleur sur le fond du texte (comme un petit badge)
-                        setBackgroundColor(Color.parseColor(codeCouleur))
-                        setTextColor(Color.BLACK) // Texte écrit en noir pour rester très lisible
-
-                        // On ajoute une petite marge sous chaque score pour les séparer proprement
-                        val params = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        ).apply { setMargins(0, 0, 0, 16) }
-                        layoutParams = params
-                    }
-                    containerHistorique.addView(txtScore)
-                }
-            }
-        }
     }
 }

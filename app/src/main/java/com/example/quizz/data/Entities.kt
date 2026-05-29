@@ -1,14 +1,15 @@
-package com.exemple.quizz // /!\ REMPLACE par le nom de ton package tout en haut de ta MainActivity
+package com.exemple.quizz
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 
-// 1. TABLE THEME
+//  TABLE THEME
 @Entity(tableName = "themes")
 data class Theme(
     @PrimaryKey(autoGenerate = true) val id_theme: Int = 0,
-    val nom_theme: String
+    val nom_theme: String,
+    val nb_parties_jouees: Int = 0
 )
 
 // 2. TABLE QUESTION (Relation "Appartenir" via clé étrangère vers le Thème)
