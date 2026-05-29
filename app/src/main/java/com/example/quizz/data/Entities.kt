@@ -12,7 +12,7 @@ data class Theme(
     val nb_parties_jouees: Int = 0
 )
 
-// 2. TABLE QUESTION (Relation "Appartenir" via clé étrangère vers le Thème)
+//  TABLE QUESTION (Relation "Appartenir" via clé étrangère vers le Thème)
 @Entity(
     tableName = "questions",
     foreignKeys = [ForeignKey(
@@ -28,7 +28,7 @@ data class Question(
     val texte: String
 )
 
-// 3. TABLE REPONSE (Relation "Proposer" via clé étrangère vers la Question)
+//  TABLE REPONSE (Relation "Proposer" via clé étrangère vers la Question)
 @Entity(
     tableName = "reponses",
     foreignKeys = [ForeignKey(
@@ -45,7 +45,7 @@ data class Reponse(
     val correcte: Boolean
 )
 
-// 4. TABLE SCORE (Obligatoire pour l'historique et valider le CREATE/DELETE du CRUD)
+//  TABLE SCORE (Obligatoire pour l'historique et valider le CREATE/DELETE du CRUD)
 @Entity(tableName = "scores")
 data class Score(
     @PrimaryKey(autoGenerate = true) val id_score: Int = 0,
