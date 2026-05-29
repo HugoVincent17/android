@@ -52,4 +52,10 @@ dependencies {
     implementation("androidx.room:room-runtime:$roomVersion")
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
+
+    // Pour pouvoir utiliser "runBlocking" ou tester les fonctions "suspend" (Dao) dans le dossier test local
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0")
+
+    // Pour que Room puisse exécuter ses requêtes instantanément pendant le test sans ramer
+    androidTestImplementation("androidx.arch.core:core-testing:2.2.0")
 }
