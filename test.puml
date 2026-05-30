@@ -1,0 +1,72 @@
+@startuml
+class com.example.quizz.data.QuestionComplete {
+}
+interface com.example.quizz.data.QuizDao {
++ List<Theme> getAllThemes()
++ List<QuestionComplete> getQuestionsByTheme(Int)
++ List<com.exemple.quizz.ScoreAvecTheme> getAllScores()
++ void insertScore(Score)
++ void deleteScore(Score)
++ void conserverUniquementLes20DerniersScores()
++ Long insertTheme(Theme)
++ Long insertQuestion(Question)
++ void insertReponses(List<Reponse>)
++ void incrementerCompteurTheme(Int)
+}
+
+abstract class com.example.quizz.data.AppDatabase {
++ QuizDao quizDao()
+}
+
+class com.example.quizz.ui.MainActivity {
+- AppDatabase db
+- QuizDao quizDao
+-  listeQuestionsPiochees
+-  indexQuestionCourante
+-  score
+- LinearLayout layoutThemes
+- LinearLayout containerBoutonsThemes
+- LinearLayout layoutJeu
+- Button btnQuestionSuivante
+- LinearLayout layoutScore
+- LinearLayout layoutHistorique
+- LinearLayout containerHistorique
+- Button btnRetourMenuDepuisHist
+- Button btnVoirHistorique
+- TextView txtProgression
+- TextView txtQuestion
+- List<Button> boutonsReponses
+- TextView txtScoreFinal
+- Button btnRetourMenu
++ void onCreate(Bundle?)
+- void rafraichirMenuThemes()
+- void afficherListeThemes(List<Theme>)
+- void lancerQuizPourTheme(Int)
+- void afficherQuestion()
+- void terminerPartie()
+- void afficherHistorique()
+- void remplirBaseDeDonneesSiVide()
+}
+
+
+class com.exemple.quizz.Theme {
+}
+class com.exemple.quizz.null {
+}
+class com.exemple.quizz.Question {
+}
+class com.exemple.quizz.null {
+}
+class com.exemple.quizz.Reponse {
+}
+class com.exemple.quizz.null {
+}
+class com.exemple.quizz.Score {
+}
+class com.exemple.quizz.ScoreAvecTheme {
+}
+
+
+androidx.room.RoomDatabase <|-- com.example.quizz.data.AppDatabase
+androidx.appcompat.app.AppCompatActivity <|-- com.example.quizz.ui.MainActivity
+@enduml
