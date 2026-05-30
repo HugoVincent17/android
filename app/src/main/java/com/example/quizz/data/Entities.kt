@@ -46,11 +46,32 @@ data class Reponse(
 )
 
 //  TABLE SCORE (Obligatoire pour l'historique et valider le CREATE/DELETE du CRUD)
-@Entity(tableName = "scores")
+@Entity(
+    tableName = "scores",
+    foreignKeys = [
+        ForeignKey(
+            entity = Theme::class,
+            parentColumns = ["id_theme"],
+            childColumns = ["themeId"],
+            // Si on supprime le thème, on garde le score dans l'historique
+            // mais on passe son themeId à null pour ne pas casser la base
+            onDelete = ForeignKey.SET_NULL
+        )
+    ]
+)
 data class Score(
     @PrimaryKey(autoGenerate = true) val id_score: Int = 0,
     val date_partie: String,
     val points_obtenus: Int,
     val total_questions: Int,
-    val theme_joue: String
+    val themeId: Int? // ID lié (nullable au cas où le thème est supprimé)
+)
+
+// Petit conteneur de données  créé pour récupérer le résultat de la jointure
+data class ScoreAvecTheme(
+    val id_score: Int,
+    val date_partie: String,
+    val points_obtenus: Int,
+    val total_questions: Int,
+    val nom_theme: String? // Contiendra le nom du thème récupéré via le JOIN SQL
 )

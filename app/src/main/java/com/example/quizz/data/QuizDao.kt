@@ -20,8 +20,13 @@ interface QuizDao {
     @Query("SELECT * FROM questions WHERE themeId = :idTheme")
     suspend fun getQuestionsByTheme(idTheme: Int): List<QuestionComplete>
 
-    @Query("SELECT * FROM scores ORDER BY id_score DESC")
-    suspend fun getAllScores(): List<Score>
+    @Query("""
+    SELECT s.id_score, s.date_partie, s.points_obtenus, s.total_questions, t.nom_theme 
+    FROM scores s 
+    LEFT JOIN themes t ON s.themeId = t.id_theme 
+    ORDER BY s.id_score DESC
+    """)
+    suspend fun getAllScores(): List<com.exemple.quizz.ScoreAvecTheme>
 
     // --- C (Create) : Enregistrer le score à la fin ---
     @Insert

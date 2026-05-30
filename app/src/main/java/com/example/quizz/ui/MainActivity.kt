@@ -140,6 +140,7 @@ class MainActivity : AppCompatActivity() {
         //boucle sur chaque thème
         for ((index, theme) in themes.withIndex()) {
             val btn = Button(this).apply {
+                text = "${theme.nom_theme} (${theme.nb_parties_jouees} 🎮)"
                 // CRITÈRE 'UPDATE' DU CRUD : On affiche le nombre de fois que ce thème a été joué               text = "${theme.nom_theme} (${theme.nb_parties_jouees} 🎮)"
                 textSize = 18f
                 layoutParams = LinearLayout.LayoutParams(
@@ -259,14 +260,13 @@ class MainActivity : AppCompatActivity() {
 
             // Récupère dynamiquement le nom du thème qui vient d'être joué
             val idThemeJoue = listeQuestionsPiochees.firstOrNull()?.question?.themeId ?: 0
-            val nomThemeJoue = quizDao.getAllThemes().find { it.id_theme == idThemeJoue }?.nom_theme ?: "Inconnu"
 
             // Instanciation de l'objet Score à enregistrer
             val enregistrementScore = Score(
                 date_partie = dateStr,
                 points_obtenus = score,
                 total_questions = listeQuestionsPiochees.size,
-                theme_joue = nomThemeJoue
+                themeId = idThemeJoue //  On enregistre l'ID (Int) au lieu du texte (String)
             )
 
             // --- ACTION 'CREATE' DU CRUD ---
@@ -279,7 +279,7 @@ class MainActivity : AppCompatActivity() {
 
             // Permet de contrôler dans les logs Android Studio la bonne efficacité de la purge
             val nbScoresApresNettoyage = quizDao.getAllScores().size
-            println("DEBUG QUIZ : Nombre de scores en BDD = $nbScoresApresNettoyage")
+
         }
     }
 
@@ -304,15 +304,16 @@ class MainActivity : AppCompatActivity() {
             // Retour sur le Thread d'affichage pour injecter les éléments dans le design
             withContext(Dispatchers.Main) {
                 for (scoreEnregistre in listeScores) {
+                    val nomTheme = scoreEnregistre.nom_theme ?: "Thème Supprimé"
                     // Création dynamique d'une zone de texte (TextView) pour chaque ligne de score
                     val txtScore = TextView(this@MainActivity).apply {
                         // Texte sur 2 lignes séparées par le \n
-                        text = "🏷️ Thème : ${scoreEnregistre.theme_joue}\n📅 ${scoreEnregistre.date_partie}  |  🏆 Score : ${scoreEnregistre.points_obtenus} / ${scoreEnregistre.total_questions}"
+                        text = "🏷️ Thème : $nomTheme\n📅 ${scoreEnregistre.date_partie}  |  🏆 Score : ${scoreEnregistre.points_obtenus} / ${scoreEnregistre.total_questions}"
                         textSize = 16f
                         setPadding(24, 24, 24, 24)
 
                         // Applique la couleur du thème associé ou un gris neutre si non trouvé
-                        val codeCouleur = mappingCouleurs[scoreEnregistre.theme_joue] ?: "#E0E0E0"
+                        val codeCouleur = mappingCouleurs[nomTheme] ?: "#E0E0E0"
                         setBackgroundColor(Color.parseColor(codeCouleur))
                         setTextColor(Color.BLACK)
 
@@ -498,23 +499,23 @@ class MainActivity : AppCompatActivity() {
         ))
         val cu2 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Quelle est la capitale de l'Australie ?"))
         quizDao.insertReponses(listOf(
-            Reponse(questionId = cu2.toInt(), texte = "Canberra", correcte = true),
             Reponse(questionId = cu2.toInt(), texte = "Sydney", correcte = false),
+            Reponse(questionId = cu2.toInt(), texte = "Canberra", correcte = true),
             Reponse(questionId = cu2.toInt(), texte = "Melbourne", correcte = false),
             Reponse(questionId = cu2.toInt(), texte = "Brisbane", correcte = false)
         ))
         val cu3 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Combien de planètes compte notre système solaire depuis 2006 ?"))
         quizDao.insertReponses(listOf(
-            Reponse(questionId = cu3.toInt(), texte = "8", correcte = true),
+            Reponse(questionId = cu3.toInt(), texte = "10", correcte = false),
             Reponse(questionId = cu3.toInt(), texte = "9", correcte = false),
             Reponse(questionId = cu3.toInt(), texte = "7", correcte = false),
-            Reponse(questionId = cu3.toInt(), texte = "10", correcte = false)
+            Reponse(questionId = cu3.toInt(), texte = "8", correcte = true)
         ))
         val cu4 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Quel gaz compose principalement l'air que nous respirons (environ 78%) ?"))
         quizDao.insertReponses(listOf(
-            Reponse(questionId = cu4.toInt(), texte = "Azote", correcte = true),
-            Reponse(questionId = cu4.toInt(), texte = "Oxygène", correcte = false),
             Reponse(questionId = cu4.toInt(), texte = "Dioxyde de carbone", correcte = false),
+            Reponse(questionId = cu4.toInt(), texte = "Oxygène", correcte = false),
+            Reponse(questionId = cu4.toInt(), texte = "Azote", correcte = true),
             Reponse(questionId = cu4.toInt(), texte = "Hydrogène", correcte = false)
         ))
         val cu5 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Quel est l'océan le plus vaste de la Terre ?"))
@@ -533,23 +534,23 @@ class MainActivity : AppCompatActivity() {
         ))
         val cu7 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "En quelle année l'Homme a-t-il marché sur la Lune pour la première fois ?"))
         quizDao.insertReponses(listOf(
-            Reponse(questionId = cu7.toInt(), texte = "1969", correcte = true),
-            Reponse(questionId = cu7.toInt(), texte = "1965", correcte = false),
-            Reponse(questionId = cu7.toInt(), texte = "1972", correcte = false),
-            Reponse(questionId = cu7.toInt(), texte = "1961", correcte = false)
+            Reponse(questionId = cu7.toInt(), texte = "1979", correcte = false),
+            Reponse(questionId = cu7.toInt(), texte = "1949", correcte = false),
+            Reponse(questionId = cu7.toInt(), texte = "1959", correcte = false),
+            Reponse(questionId = cu7.toInt(), texte = "1969", correcte = true)
         ))
         val cu8 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Quel monument parisien a été construit pour l'Exposition Universelle de 1889 ?"))
         quizDao.insertReponses(listOf(
-            Reponse(questionId = cu8.toInt(), texte = "La Tour Eiffel", correcte = true),
-            Reponse(questionId = cu8.toInt(), texte = "L'Arc de Triomphe", correcte = false),
+            Reponse(questionId = cu8.toInt(), texte = "L'arc de Triomphe'", correcte = true),
+            Reponse(questionId = cu8.toInt(), texte = "La Tour Eiffel", correcte = false),
             Reponse(questionId = cu8.toInt(), texte = "Le Sacré-Cœur", correcte = false),
             Reponse(questionId = cu8.toInt(), texte = "Le Louvre", correcte = false)
         ))
         val cu9 = quizDao.insertQuestion(Question(themeId = idCulture, texte = "Quel est l'animal terrestre le plus rapide du monde ?"))
         quizDao.insertReponses(listOf(
-            Reponse(questionId = cu9.toInt(), texte = "Le guépard", correcte = true),
+            Reponse(questionId = cu9.toInt(), texte = "L'autruche", correcte = true),
             Reponse(questionId = cu9.toInt(), texte = "Le lion", correcte = false),
-            Reponse(questionId = cu9.toInt(), texte = "L'autruche", correcte = false),
+            Reponse(questionId = cu9.toInt(), texte = "Le guépard", correcte = false),
             Reponse(questionId = cu9.toInt(), texte = "L'antilope", correcte = false)
         ))
         val cu10 = quizDao.insertQuestion(
@@ -587,8 +588,8 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = g2.toInt(), texte = "Chine", correcte = true),
-            Reponse(questionId = g2.toInt(), texte = "Japon", correcte = false),
+            Reponse(questionId = g2.toInt(), texte = "Chine", correcte = false),
+            Reponse(questionId = g2.toInt(), texte = "Japon", correcte = true),
             Reponse(questionId = g2.toInt(), texte = "Indonésie", correcte = false),
             Reponse(questionId = g2.toInt(), texte = "Philippines", correcte = false)
         ))
@@ -611,10 +612,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = g4.toInt(), texte = "L'Himalaya", correcte = true),
+            Reponse(questionId = g4.toInt(), texte = "Les Rocheuses", correcte = false),
             Reponse(questionId = g4.toInt(), texte = "Les Andes", correcte = false),
             Reponse(questionId = g4.toInt(), texte = "Les Alpes", correcte = false),
-            Reponse(questionId = g4.toInt(), texte = "Les Rocheuses", correcte = false)
+            Reponse(questionId = g4.toInt(), texte = "L'Himalaya'", correcte = true)
         ))
         val g5 = quizDao.insertQuestion(
             Question(
@@ -635,9 +636,9 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = g6.toInt(), texte = "Détroit de Gibraltar", correcte = true),
-            Reponse(questionId = g6.toInt(), texte = "Détroit de Magellan", correcte = false),
             Reponse(questionId = g6.toInt(), texte = "Détroit de Béring", correcte = false),
+            Reponse(questionId = g6.toInt(), texte = "Détroit de Magellan", correcte = false),
+            Reponse(questionId = g6.toInt(), texte = "Détroit de Gibraltar", correcte = true),
             Reponse(questionId = g6.toInt(), texte = "Détroit du Bosphore", correcte = false)
         ))
         val g7 = quizDao.insertQuestion(
@@ -671,9 +672,9 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = g9.toInt(), texte = "Rome", correcte = true),
-            Reponse(questionId = g9.toInt(), texte = "Milan", correcte = false),
             Reponse(questionId = g9.toInt(), texte = "Venise", correcte = false),
+            Reponse(questionId = g9.toInt(), texte = "Milan", correcte = false),
+            Reponse(questionId = g9.toInt(), texte = "Rome", correcte = true),
             Reponse(questionId = g9.toInt(), texte = "Florence", correcte = false)
         ))
         val g10 = quizDao.insertQuestion(
@@ -683,10 +684,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = g10.toInt(), texte = "La mer Méditerranée", correcte = true),
+            Reponse(questionId = g10.toInt(), texte = "La mer du Nord", correcte = false),
             Reponse(questionId = g10.toInt(), texte = "La mer Noire", correcte = false),
             Reponse(questionId = g10.toInt(), texte = "La mer Rouge", correcte = false),
-            Reponse(questionId = g10.toInt(), texte = "La mer Morte", correcte = false)
+            Reponse(questionId = g10.toInt(), texte = "La mer Méditerrannée", correcte = true)
         ))
 
         // --- 5. THÈME : INFORMATIQUE ---
@@ -701,11 +702,7 @@ class MainActivity : AppCompatActivity() {
         quizDao.insertReponses(listOf(
             Reponse(questionId = i1.toInt(), texte = "HyperText Markup Language", correcte = true),
             Reponse(questionId = i1.toInt(), texte = "HighText Machine Language", correcte = false),
-            Reponse(
-                questionId = i1.toInt(),
-                texte = "Hyperlink Text Multi Language",
-                correcte = false
-            ),
+            Reponse(questionId = i1.toInt(), texte = "Hyperlink Text Multi Language", correcte = false),
             Reponse(questionId = i1.toInt(), texte = "Home Tool Markup Language", correcte = false)
         ))
         val i2 = quizDao.insertQuestion(
@@ -715,8 +712,8 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = i2.toInt(), texte = "Kotlin", correcte = true),
             Reponse(questionId = i2.toInt(), texte = "Java", correcte = false),
+            Reponse(questionId = i2.toInt(), texte = "Kotlin", correcte = true),
             Reponse(questionId = i2.toInt(), texte = "Python", correcte = false),
             Reponse(questionId = i2.toInt(), texte = "C++", correcte = false)
         ))
@@ -727,10 +724,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = i3.toInt(), texte = "Le processeur (CPU)", correcte = true),
-            Reponse(questionId = i3.toInt(), texte = "La carte graphique (GPU)", correcte = false),
-            Reponse(questionId = i3.toInt(), texte = "La mémoire vive (RAM)", correcte = false),
-            Reponse(questionId = i3.toInt(), texte = "Le disque dur (SSD)", correcte = false)
+            Reponse(questionId = i3.toInt(), texte = "Le processeur", correcte = true),
+            Reponse(questionId = i3.toInt(), texte = "La carte graphique", correcte = false),
+            Reponse(questionId = i3.toInt(), texte = "La mémoire vive", correcte = false),
+            Reponse(questionId = i3.toInt(), texte = "Le disque dur", correcte = false)
         ))
         val i4 = quizDao.insertQuestion(
             Question(
@@ -739,15 +736,15 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = i4.toInt(), texte = "0 et 1", correcte = true),
-            Reponse(questionId = i4.toInt(), texte = "1 et 2", correcte = false),
             Reponse(questionId = i4.toInt(), texte = "0 et 9", correcte = false),
+            Reponse(questionId = i4.toInt(), texte = "1 et 2", correcte = false),
+            Reponse(questionId = i4.toInt(), texte = "0 et 1", correcte = true),
             Reponse(questionId = i4.toInt(), texte = "-1 et 1", correcte = false)
         ))
         val i5 = quizDao.insertQuestion(
             Question(
                 themeId = idInfo,
-                texte = "Que signifie l'extension '.ip' d'une adresse internet ?"
+                texte = "Que signifie IP ?"
             )
         )
         quizDao.insertReponses(listOf(
@@ -763,10 +760,10 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = i6.toInt(), texte = "Bill Gates", correcte = true),
+            Reponse(questionId = i6.toInt(), texte = "Jeff Bezos", correcte = false),
             Reponse(questionId = i6.toInt(), texte = "Steve Jobs", correcte = false),
             Reponse(questionId = i6.toInt(), texte = "Mark Zuckerberg", correcte = false),
-            Reponse(questionId = i6.toInt(), texte = "Jeff Bezos", correcte = false)
+            Reponse(questionId = i6.toInt(), texte = "Bill Gates", correcte = true)
         ))
         val i7 = quizDao.insertQuestion(
             Question(
@@ -787,8 +784,8 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = i8.toInt(), texte = "Un manchot (Tux)", correcte = true),
             Reponse(questionId = i8.toInt(), texte = "Un renard", correcte = false),
+            Reponse(questionId = i8.toInt(), texte = "Un manchot", correcte = true),
             Reponse(questionId = i8.toInt(), texte = "Un dauphin", correcte = false),
             Reponse(questionId = i8.toInt(), texte = "Un gnou", correcte = false)
         ))
@@ -811,8 +808,8 @@ class MainActivity : AppCompatActivity() {
             )
         )
         quizDao.insertReponses(listOf(
-            Reponse(questionId = i10.toInt(), texte = "1024", correcte = true),
             Reponse(questionId = i10.toInt(), texte = "1000", correcte = false),
+            Reponse(questionId = i10.toInt(), texte = "1024", correcte = true),
             Reponse(questionId = i10.toInt(), texte = "512", correcte = false),
             Reponse(questionId = i10.toInt(), texte = "2048", correcte = false)
         ))

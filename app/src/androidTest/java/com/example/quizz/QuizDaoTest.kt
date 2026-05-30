@@ -66,12 +66,19 @@ class QuizDaoTest {
         assertEquals(2, questionsCompletes[0].reponses.size)
 
         //TEST : Gestion des Scores (Create & Delete)
-        val score1 = com.exemple.quizz.Score(id_score = 1, date_partie = "30/05/2026", points_obtenus = 7, total_questions = 10, theme_joue = "Géographie")
+        // On passe l'ID du thème (1) qui a été créé au tout début du test
+        val score1 = com.exemple.quizz.Score(
+            id_score = 1,
+            date_partie = "30/05/2026",
+            points_obtenus = 7,
+            total_questions = 10,
+            themeId = 1
+        )
         quizDao.insertScore(score1)
 
         var listeScores = quizDao.getAllScores()
         assertEquals(1, listeScores.size)
-
+        assertEquals("Géographie", listeScores[0].nom_theme) // Prouve que la jointure SQL fonctionne
         quizDao.deleteScore(score1)
         listeScores = quizDao.getAllScores()
         assertTrue(listeScores.isEmpty())
@@ -84,7 +91,7 @@ class QuizDaoTest {
                 date_partie = "30/05/2026",
                 points_obtenus = 5,
                 total_questions = 10,
-                theme_joue = "Géographie"
+                themeId = 1
             )
             quizDao.insertScore(scoreBoucle)
         }
