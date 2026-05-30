@@ -67,7 +67,13 @@ class AppEntitiesTest {
         // Insertion de la liste des réponses (ajusté suite à tes corrections précédentes)
         quizDao.insertReponses(listOf(reponseJuste, reponseFausse))
 
-        val score = Score(id_score = 1, date_partie = "30/05/2026", points_obtenus = 8, total_questions = 10, theme_joue = "Histoire")
+        val score = Score(
+            id_score = 1,
+            date_partie = "30/05/2026",
+            points_obtenus = 8,
+            total_questions = 10,
+            themeId = 1
+        )
         quizDao.insertScore(score)
 
         // VÉRIFICATIONS DES DONNÉES (L'essentiel pour ton CRUD)
@@ -83,6 +89,6 @@ class AppEntitiesTest {
         assertNotNull(scores)
         assertEquals(1, scores.size)
         assertEquals(8, scores[0].points_obtenus)
-        assertEquals("Histoire", scores[0].theme_joue)
+        assertEquals("Histoire", scores[0].nom_theme)
     }
 }
