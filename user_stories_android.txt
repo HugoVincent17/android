@@ -1,0 +1,9 @@
+En tant qu'utilisateur, je peux sélectionner un thème
+
+En tant qu'utilisateur, je peux répondre à un quizz sur le thème sélectionné
+
+En tant qu'utilisateur, je peux voir mon score à la fin du quizz
+
+En tant qu'utilisateur, je peux consulter l'historique des derniers scores des quizz effectués
+
+En tant qu'utilisateur, je peux voir combien de parties j'ai joué sur chaque thème
