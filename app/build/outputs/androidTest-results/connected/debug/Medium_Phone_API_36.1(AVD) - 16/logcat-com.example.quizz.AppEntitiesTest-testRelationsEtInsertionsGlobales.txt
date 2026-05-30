@@ -1,0 +1,3 @@
+05-30 12:01:50.669 16249 16265 I TestRunner: started: testRelationsEtInsertionsGlobales(com.example.quizz.AppEntitiesTest)
+05-30 12:01:50.764 16249 16265 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+05-30 12:01:50.805 16249 16265 I TestRunner: finished: testRelationsEtInsertionsGlobales(com.example.quizz.AppEntitiesTest)

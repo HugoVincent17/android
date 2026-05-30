@@ -1,0 +1,9 @@
+com.example.quizz.test.app-androidTest-0 C:\Android\app\build\generated\res\resValues\androidTest\debug
+com.example.quizz.test.app-updated_navigation_xml-1 C:\Android\app\build\generated\updated_navigation_xml\debugAndroidTest
+com.example.quizz.test.app-mergeDebugAndroidTestResources-2 C:\Android\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.example.quizz.test.app-mergeDebugAndroidTestResources-3 C:\Android\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.example.quizz.test.app-debugAndroidTest-4 C:\Android\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
+com.example.quizz.test.app-core-testing-2.2.0-5 C:\Users\hugov\.gradle\caches\8.13\transforms\186bbe4faa9bdd24fead3c15817e5a14\transformed\core-testing-2.2.0\res
+com.example.quizz.test.app-core-runtime-2.2.0-6 C:\Users\hugov\.gradle\caches\8.13\transforms\5e36854e848560711df430ab70d0baa0\transformed\core-runtime-2.2.0\res
+com.example.quizz.test.app-tracing-1.2.0-7 C:\Users\hugov\.gradle\caches\8.13\transforms\8e49978796b202a6e45b514835656195\transformed\tracing-1.2.0\res
+com.example.quizz.test.app-core-1.7.0-8 C:\Users\hugov\.gradle\caches\8.13\transforms\af12dbe8483f9340808e953e1beeb75f\transformed\core-1.7.0\res

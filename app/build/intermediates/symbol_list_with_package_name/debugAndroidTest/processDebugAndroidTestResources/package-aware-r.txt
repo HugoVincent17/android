@@ -1,0 +1,3 @@
+com.example.quizz.test
+style WhiteBackgroundDialogTheme
+style WhiteBackgroundTheme

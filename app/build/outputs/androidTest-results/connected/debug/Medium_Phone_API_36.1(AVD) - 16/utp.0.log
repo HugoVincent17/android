@@ -1,0 +1,44 @@
+INFOS: Constructing runner from config.
+INFOS: Configuring Android Instrumentation driver: android_instrumentation_runtime {
+  instrumentation_info {
+    app_package: "com.example.quizz"
+    test_package: "com.example.quizz.test"
+    test_runner_class: "androidx.test.runner.AndroidJUnitRunner"
+  }
+  instrumentation_args {
+    args_map {
+      key: "additionalTestOutputDir"
+      value: "/sdcard/Android/media/com.example.quizz/additional_test_output"
+    }
+    args_map {
+      key: "class"
+      value: "com.example.quizz.AppEntitiesTest"
+    }
+  }
+}
+am_instrument_timeout: 31536000
+
+INFOS: Configuring AndroidTestApkInstallerPlugin: apks_to_install {
+  apk_paths: "C:\\Android\\app\\build\\intermediates\\apk\\debug\\app-debug.apk"
+  install_options {
+  }
+  uninstall_after_test: true
+}
+apks_to_install {
+  apk_paths: "C:\\Android\\app\\build\\intermediates\\apk\\androidTest\\debug\\app-debug-androidTest.apk"
+  install_options {
+  }
+  uninstall_after_test: true
+}
+instrumentation_target_package_id: "com.example.quizz"
+
+INFOS: No installables found in test fixture. Nothing to install.
+INFOS: Installing [C:\Android\app\build\intermediates\apk\debug\app-debug.apk] on device emulator-5554.
+INFOS: Installing [C:\Android\app\build\intermediates\apk\androidTest\debug\app-debug-androidTest.apk] on device emulator-5554.
+INFOS: Start logcat streaming.
+INFOS: Running Android Instrumentation driver.
+INFOS: Copying files from device to host: /sdcard/Android/media/com.example.quizz/additional_test_output to C:\Android\app\build\outputs\connected_android_test_additional_output\debugAndroidTest\connected\Medium_Phone_API_36.1(AVD) - 16
+INFOS: Stop logcat streaming.
+INFOS: Uninstalling com.example.quizz for device emulator-5554.
+INFOS: Uninstalling com.example.quizz.test for device emulator-5554.
+INFOS: Execute com.example.quizz.AppEntitiesTest.testRelationsEtInsertionsGlobales: PASSED

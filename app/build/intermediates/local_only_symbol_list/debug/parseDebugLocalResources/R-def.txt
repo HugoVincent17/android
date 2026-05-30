@@ -1,0 +1,31 @@
+R_DEF: Internal format may change without notice
+local
+color black
+color white
+drawable ic_launcher_background
+drawable ic_launcher_foreground
+id btnQuestionSuivante
+id btnReponse1
+id btnReponse2
+id btnReponse3
+id btnReponse4
+id btnRetourMenu
+id btnRetourMenuDepuisHist
+id btnVoirHistorique
+id containerBoutonsThemes
+id containerHistorique
+id layoutHistorique
+id layoutJeu
+id layoutScore
+id layoutThemes
+id txtProgression
+id txtQuestion
+id txtScoreFinal
+layout activity_main
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+style Base.Theme.Quizz
+style Theme.Quizz
+xml backup_rules
+xml data_extraction_rules
